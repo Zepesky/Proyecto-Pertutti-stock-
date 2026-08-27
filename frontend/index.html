@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Stock — Milanesas</title>
+<style>
+  :root {
+    --pan: #f2e2c4;
+    --pan-oscuro: #d9bf8f;
+    --carne: #a8362a;
+    --carne-oscuro: #7c2620;
+    --pollo: #c98a2c;
+    --carbon: #2b2420;
+    --carbon-suave: #4a3f37;
+    --papel: #fbf6ec;
+    --linea: #e3d5b8;
+    --verde-ok: #4c7a4f;
+    --alerta: #b23b2e;
+    --radio: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--carbon);
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: var(--carbon);
+    color: var(--papel);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-size: 1.15rem;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  header h1 span { color: var(--pollo); }
+
+  #info-usuario {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #btn-salir {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: var(--papel);
+    padding: 6px 12px;
+    border-radius: var(--radio);
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  #btn-salir:hover { background: rgba(255,255,255,0.1); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* --- Pantalla de login --- */
+  #pantalla-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--carbon) 0%, var(--carbon-suave) 100%);
+  }
+  .caja-login {
+    background: var(--papel);
+    padding: 36px 32px;
+    border-radius: var(--radio);
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  .caja-login h1 {
+    text-align: center;
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+  }
+  .caja-login h1 span { color: var(--carne); }
+  .caja-login p.subtitulo {
+    text-align: center;
+    color: var(--carbon-suave);
+    font-size: 0.85rem;
+    margin: 0 0 26px;
+  }
+
+  label { display: block; font-size: 0.8rem; color: var(--carbon-suave); margin-bottom: 4px; font-weight: 600; }
+  input, select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    font-size: 1rem;
+    background: white;
+    margin-bottom: 16px;
+    color: var(--carbon);
+  }
+  input:focus, select:focus { outline: 2px solid var(--pollo); border-color: var(--pollo); }
+
+  button.primario {
+    width: 100%;
+    padding: 12px;
+    background: var(--carne);
+    color: white;
+    border: none;
+    border-radius: var(--radio);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.primario:hover { background: var(--carne-oscuro); }
+  button.primario:disabled { opacity: 0.5; cursor: default; }
+
+  #error-login {
+    color: var(--alerta);
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 14px;
+    min-height: 1em;
+  }
+
+  /* --- Tabs --- */
+  nav.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 22px;
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    flex: 1;
+    white-space: nowrap;
+    padding: 10px 14px;
+    border: 1px solid var(--linea);
+    background: white;
+    border-radius: var(--radio);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--carbon-suave);
+  }
+  nav.tabs button.activo {
+    background: var(--carbon);
+    color: var(--papel);
+    border-color: var(--carbon);
+  }
+
+  .seccion { display: none; }
+  .seccion.visible { display: block; }
+
+  .tarjeta {
+    background: white;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .tarjeta h2 {
+    margin: 0 0 16px;
+    font-size: 1.05rem;
+  }
+
+  .fila-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .mensaje-ok, .mensaje-error {
+    padding: 10px 14px;
+    border-radius: var(--radio);
+    font-size: 0.85rem;
+    margin-top: 8px;
+    display: none;
+  }
+  .mensaje-ok { background: #e5f0e5; color: var(--verde-ok); }
+  .mensaje-error { background: #f6e2df; color: var(--alerta); }
+
+  /* --- Stock cards --- */
+  .grid-stock { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stock-item {
+    background: var(--pan);
+    border-radius: var(--radio);
+    padding: 14px;
+    text-align: center;
+    border: 1px solid var(--pan-oscuro);
+  }
+  .stock-item .cantidad { font-size: 1.8rem; font-weight: 700; color: var(--carbon); }
+  .stock-item .etiqueta { font-size: 0.78rem; color: var(--carbon-suave); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stock-item.pollo { background: #f6e3c2; border-color: var(--pollo); }
+  .stock-item.carne { background: #f2d9d5; border-color: var(--carne); }
+
+  /* --- Tabla de lotes --- */
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--linea); }
+  th { color: var(--carbon-suave); font-size: 0.75rem; text-transform: uppercase; }
+  tr.fila-alerta { background: #fbeceA; }
+  .pill { padding: 2px 9px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+  .pill.alerta { background: var(--alerta); color: white; }
+  .pill.ok { background: var(--verde-ok); color: white; }
+
+  .vacio { color: var(--carbon-suave); font-size: 0.9rem; text-align: center; padding: 20px 0; }
+
+  footer.nota {
+    font-size: 0.75rem;
+    color: var(--carbon-suave);
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  @media (max-width: 480px) {
+    .fila-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PANTALLA DE LOGIN ============ -->
+<div id="pantalla-login">
+  <div class="caja-login">
+    <img src="assets/logo.png" alt="Pertutti" style="height:60px; display:block; margin:0 auto 6px;">
+    <p class="subtitulo">Control de rotación y stock de milanesas</p>
+    <form id="form-login">
+      <label for="input-usuario">Usuario</label>
+      <input id="input-usuario" type="text" autocomplete="username" required>
+      <label for="input-password">Contraseña</label>
+      <input id="input-password" type="password" autocomplete="current-password" required>
+      <button type="submit" class="primario">Ingresar</button>
+      <div id="error-login"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP (después de loguearse) ============ -->
+<div id="pantalla-app" style="display:none;">
+  <header>
+    <h1>🥩 Mila<span>Stock</span></h1>
+    <div id="info-usuario">
+      <span id="texto-usuario"></span>
+      <button id="btn-salir">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <nav class="tabs">
+      <button data-tab="stock" class="activo">Stock</button>
+      <button data-tab="cargar">Cargar producción</button>
+      <button data-tab="venta">Venta del día</button>
+      <button data-tab="estadisticas">Estadísticas</button>
+    </nav>
+
+    <!-- STOCK -->
+    <section class="seccion visible" id="tab-stock">
+      <div class="tarjeta">
+        <h2>Stock actual</h2>
+        <div class="grid-stock" id="grid-stock"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>⚠️ Lotes con alerta (más de 3 días)</h2>
+        <div id="tabla-alertas"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Todos los lotes</h2>
+        <div id="tabla-lotes"></div>
+      </div>
+    </section>
+
+    <!-- CARGAR PRODUCCIÓN -->
+    <section class="seccion" id="tab-cargar">
+      <div class="tarjeta">
+        <h2>Cargar stock nuevo</h2>
+        <form id="form-lote">
+          <div class="fila-2">
+            <div>
+              <label>Tipo</label>
+              <select id="lote-tipo">
+                <option value="carne">Carne</option>
+                <option value="pollo">Pollo</option>
+              </select>
+            </div>
+            <div>
+              <label>Tamaño</label>
+              <select id="lote-tamano">
+                <option value="grande">Grande</option>
+                <option value="infantil">Infantil</option>
+              </select>
+            </div>
+          </div>
+          <label>Cantidad de unidades hechas</label>
+          <input id="lote-cantidad" type="number" min="1" required>
+          <button type="submit" class="primario">Cargar lote</button>
+          <div class="mensaje-ok" id="ok-lote">Lote cargado correctamente ✅</div>
+          <div class="mensaje-error" id="error-lote"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VENTA -->
+    <section class="seccion" id="tab-venta">
+      <div class="tarjeta">
+        <h2>Cargar venta del día</h2>
+        <p style="font-size:0.85rem; color:var(--carbon-suave); margin-top:-8px;">
+          Se descuenta automáticamente del lote más viejo disponible (rotación FIFO).
+        </p>
+        <form id="form-venta">
+          <div class="fila-2">
+            <div>
+              <label>Tipo</label>
+              <select id="venta-tipo">
+                <option value="carne">Carne</option>
+                <option value="pollo">Pollo</option>
+              </select>
+            </div>
+            <div>
+              <label>Tamaño</label>
+              <select id="venta-tamano">
+                <option value="grande">Grande</option>
+                <option value="infantil">Infantil</option>
+              </select>
+            </div>
+          </div>
+          <label>Cantidad vendida</label>
+          <input id="venta-cantidad" type="number" min="1" required>
+          <button type="submit" class="primario">Registrar venta</button>
+          <div class="mensaje-ok" id="ok-venta">Venta registrada y descontada del stock ✅</div>
+          <div class="mensaje-error" id="error-venta"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ESTADISTICAS -->
+    <section class="seccion" id="tab-estadisticas">
+      <div class="tarjeta">
+        <h2>Ventas por tipo y tamaño (histórico)</h2>
+        <div id="tabla-por-tipo"></div>
+      </div>
+      <div class="tarjeta">
+        <h2>Ventas por día (últimos registros)</h2>
+        <div id="tabla-por-dia"></div>
+      </div>
+    </section>
+
+    <footer class="nota">&copy; 2026 Pertutti / Zepesky Fabrizio. Todos los derechos reservados.</footer>
+  </main>
+</div>
+
+<script>
+// ============ CONFIG ============
+// Si el backend corre en otra dirección/puerto, cambiar acá:
+const API_URL = window.location.hostname === "localhost" || window.location.protocol === "file:"
+  ? "http://localhost:8000"
+  : window.location.origin + "/api";
+
+let token = localStorage.getItem("milastock_token") || null;
+
+// ============ HELPERS ============
+function traducirTipo(t) { return t === "carne" ? "Carne" : "Pollo"; }
+function traducirTamano(t) { return t === "grande" ? "Grande" : "Infantil"; }
+
+async function llamarApi(ruta, opciones = {}) {
+  const headers = opciones.headers || {};
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const respuesta = await fetch(API_URL + ruta, { ...opciones, headers });
+  if (respuesta.status === 401) {
+    cerrarSesion();
+    throw new Error("Sesión vencida, iniciá sesión de nuevo.");
+  }
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => ({}));
+    throw new Error(cuerpo.detail || "Error en el servidor");
+  }
+  return respuesta.json();
+}
+
+// ============ LOGIN ============
+const formLogin = document.getElementById("form-login");
+const errorLogin = document.getElementById("error-login");
+
+formLogin.addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  errorLogin.textContent = "";
+  const usuario = document.getElementById("input-usuario").value;
+  const password = document.getElementById("input-password").value;
+
+  const cuerpo = new URLSearchParams();
+  cuerpo.append("username", usuario);
+  cuerpo.append("password", password);
+
+  try {
+    const respuesta = await fetch(API_URL + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: cuerpo,
+    });
+    if (!respuesta.ok) throw new Error("Usuario o contraseña incorrectos");
+    const datos = await respuesta.json();
+    token = datos.access_token;
+    localStorage.setItem("milastock_token", token);
+    await mostrarApp();
+  } catch (error) {
+    errorLogin.textContent = error.message;
+  }
+});
+
+document.getElementById("btn-salir").addEventListener("click", cerrarSesion);
+
+function cerrarSesion() {
+  token = null;
+  localStorage.removeItem("milastock_token");
+  document.getElementById("pantalla-app").style.display = "none";
+  document.getElementById("pantalla-login").style.display = "flex";
+}
+
+async function mostrarApp() {
+  const usuario = await llamarApi("/yo");
+  document.getElementById("texto-usuario").textContent = usuario.username;
+  document.getElementById("pantalla-login").style.display = "none";
+  document.getElementById("pantalla-app").style.display = "block";
+  await cargarTodo();
+}
+
+// ============ TABS ============
+document.querySelectorAll("nav.tabs button").forEach((boton) => {
+  boton.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.classList.remove("activo"));
+    document.querySelectorAll(".seccion").forEach((s) => s.classList.remove("visible"));
+    boton.classList.add("activo");
+    document.getElementById("tab-" + boton.dataset.tab).classList.add("visible");
+  });
+});
+
+// ============ STOCK ============
+async function cargarStockResumen() {
+  const resumen = await llamarApi("/stock/resumen");
+  const grid = document.getElementById("grid-stock");
+  if (resumen.length === 0) {
+    grid.innerHTML = '<div class="vacio">Todavía no hay stock cargado.</div>';
+    return;
+  }
+  grid.innerHTML = resumen.map((item) => `
+    <div class="stock-item ${item.tipo}">
+      <div class="cantidad">${item.cantidad_total}</div>
+      <div class="etiqueta">${traducirTipo(item.tipo)} · ${traducirTamano(item.tamano)}</div>
+    </div>
+  `).join("");
+}
+
+async function cargarAlertas() {
+  const alertas = await llamarApi("/lotes/alertas");
+  const contenedor = document.getElementById("tabla-alertas");
+  if (alertas.length === 0) {
+    contenedor.innerHTML = '<div class="vacio">Sin alertas por ahora 👍</div>';
+    return;
+  }
+  contenedor.innerHTML = armarTablaLotes(alertas);
+}
+
+async function cargarLotes() {
+  const lotes = await llamarApi("/lotes");
+  const contenedor = document.getElementById("tabla-lotes");
+  if (lotes.length === 0) {
+    contenedor.innerHTML = '<div class="vacio">Todavía no cargaste ningún lote.</div>';
+    return;
+  }
+  contenedor.innerHTML = armarTablaLotes(lotes);
+}
+
+function armarTablaLotes(lotes) {
+  const filas = lotes.map((lote) => `
+    <tr class="${lote.alerta ? 'fila-alerta' : ''}">
+      <td>${traducirTipo(lote.tipo)} · ${traducirTamano(lote.tamano)}</td>
+      <td>${lote.cantidad_actual} / ${lote.cantidad_inicial}</td>
+      <td>${lote.dias_de_antiguedad} día(s)</td>
+      <td><span class="pill ${lote.alerta ? 'alerta' : 'ok'}">${lote.alerta ? 'Rotar ya' : 'OK'}</span></td>
+    </tr>
+  `).join("");
+  return `<table><thead><tr><th>Producto</th><th>Stock</th><th>Antigüedad</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>`;
+}
+
+// ============ CARGAR LOTE ============
+document.getElementById("form-lote").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const okMsj = document.getElementById("ok-lote");
+  const errMsj = document.getElementById("error-lote");
+  okMsj.style.display = "none";
+  errMsj.style.display = "none";
+
+  const cuerpo = {
+    tipo: document.getElementById("lote-tipo").value,
+    tamano: document.getElementById("lote-tamano").value,
+    cantidad: parseInt(document.getElementById("lote-cantidad").value, 10),
+  };
+
+  try {
+    await llamarApi("/lotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+    okMsj.style.display = "block";
+    document.getElementById("form-lote").reset();
+    await cargarStockResumen();
+    await cargarLotes();
+    await cargarAlertas();
+  } catch (error) {
+    errMsj.textContent = error.message;
+    errMsj.style.display = "block";
+  }
+});
+
+// ============ CARGAR VENTA ============
+document.getElementById("form-venta").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const okMsj = document.getElementById("ok-venta");
+  const errMsj = document.getElementById("error-venta");
+  okMsj.style.display = "none";
+  errMsj.style.display = "none";
+
+  const cuerpo = {
+    tipo: document.getElementById("venta-tipo").value,
+    tamano: document.getElementById("venta-tamano").value,
+    cantidad: parseInt(document.getElementById("venta-cantidad").value, 10),
+  };
+
+  try {
+    await llamarApi("/ventas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+    okMsj.style.display = "block";
+    document.getElementById("form-venta").reset();
+    await cargarStockResumen();
+    await cargarLotes();
+    await cargarAlertas();
+    await cargarEstadisticas();
+  } catch (error) {
+    errMsj.textContent = error.message;
+    errMsj.style.display = "block";
+  }
+});
+
+// ============ ESTADISTICAS ============
+async function cargarEstadisticas() {
+  const porTipo = await llamarApi("/estadisticas/por-tipo");
+  const contenedorTipo = document.getElementById("tabla-por-tipo");
+  contenedorTipo.innerHTML = porTipo.length === 0
+    ? '<div class="vacio">Todavía no hay ventas registradas.</div>'
+    : `<table><thead><tr><th>Producto</th><th>Total vendido</th></tr></thead><tbody>${
+        porTipo.map((f) => `<tr><td>${traducirTipo(f.tipo)} · ${traducirTamano(f.tamano)}</td><td>${f.cantidad_total}</td></tr>`).join("")
+      }</tbody></table>`;
+
+  const porDia = await llamarApi("/estadisticas/por-dia");
+  const contenedorDia = document.getElementById("tabla-por-dia");
+  contenedorDia.innerHTML = porDia.length === 0
+    ? '<div class="vacio">Todavía no hay ventas registradas.</div>'
+    : `<table><thead><tr><th>Día</th><th>Total vendido</th></tr></thead><tbody>${
+        porDia.map((f) => `<tr><td>${f.dia}</td><td>${f.cantidad_total}</td></tr>`).join("")
+      }</tbody></table>`;
+}
+
+async function cargarTodo() {
+  await cargarStockResumen();
+  await cargarAlertas();
+  await cargarLotes();
+  await cargarEstadisticas();
+}
+
+// ============ INICIO ============
+if (token) {
+  mostrarApp().catch(() => cerrarSesion());
+}
+</script>
+
+</body>
+</html>
