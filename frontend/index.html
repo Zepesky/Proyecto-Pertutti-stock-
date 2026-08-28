@@ -357,8 +357,10 @@
 <script>
 // ============ CONFIG ============
 // Si el backend corre en otra dirección/puerto, cambiar acá:
-const API_URL = window.location.hostname === "localhost" || window.location.protocol === "file:"
-  ? "http://localhost:8000"
+const API_URL = window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ||
+                window.location.protocol === "file:"
+  ? "http://127.0.0.1:8000"
   : window.location.origin + "/api";
 
 let token = localStorage.getItem("milastock_token") || null;
